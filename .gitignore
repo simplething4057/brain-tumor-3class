@@ -1,0 +1,48 @@
+# ── 환경 변수 (API 키 포함 — 절대 커밋 금지) ──────────────────────────
+.env
+.env.*
+!.env.example
+backend/.env
+backend/.env.*
+
+# ── 데이터 (용량 큰 파일) ──────────────────────────────────────────────
+data/raw/
+data/processed/
+outputs/segmentation/
+uploads/
+*.nii
+*.nii.gz
+*.zip
+*.tar.gz
+
+# ── 모델 가중치 ────────────────────────────────────────────────────────
+models/weights/*.pkl
+models/weights/*.pth
+models/weights/*.h5
+
+# ── Python ─────────────────────────────────────────────────────────────
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+
+# ── Node.js ────────────────────────────────────────────────────────────
+node_modules/
+frontend/dist/
+
+# ── DB / Vector Store ──────────────────────────────────────────────────
+chroma_db/
+*.sqlite3
+
+# ── Jupyter ────────────────────────────────────────────────────────────
+.ipynb_checkpoints/
+
+# ── Logs / 임시 파일 ───────────────────────────────────────────────────
+*.log
+*.tmp
+.DS_Store
+Thumbs.db

@@ -1,0 +1,113 @@
+# Brain Tumor 3-Class Discrimination System - 설정 파일
+
+project:
+  name: brain-tumor-3class
+  version: "0.1.0"
+
+# ──────────────────────────────────────────
+# 데이터 경로 설정
+# ──────────────────────────────────────────
+data:
+  raw:
+    GLI: "data/raw/GLI"   # BraTS2023 GLI 압축 해제 후 경로
+    MEN: "data/raw/MEN"   # BraTS2023 MEN 압축 해제 후 경로
+    MET: "data/raw/MET"   # UCSF BrainMetastases 데이터 경로
+  processed: "data/processed"
+
+  # 각 타입별 파일명 패턴
+  file_patterns:
+    GLI:
+      t1c: "{id}-t1c.nii.gz"
+      t1n: "{id}-t1n.nii.gz"
+      t2f: "{id}-t2f.nii.gz"
+      t2w: "{id}-t2w.nii.gz"
+      seg: "{id}-seg.nii.gz"
+    MEN:
+      t1c: "{id}-t1c.nii.gz"
+      t1n: "{id}-t1n.nii.gz"
+      t2f: "{id}-t2f.nii.gz"
+      t2w: "{id}-t2w.nii.gz"
+      seg: "{id}-seg.nii.gz"
+    MET:  # UCSF → BraTS 표준 명명으로 변환 후 저장
+      t1c: "{id}-t1c.nii.gz"
+      t1n: "{id}-t1n.nii.gz"
+      t2f: "{id}-t2f.nii.gz"
+      t2w: "{id}-t2w.nii.gz"   # UCSF T2Synth (합성 T2) 사용
+      seg: "{id}-seg.nii.gz"
+
+# ──────────────────────────────────────────
+# 전처리 설정
+# ──────────────────────────────────────────
+preprocessing:
+  target_spacing: [1.0, 1.0, 1.0]   # mm isotropic
+  target_size: [240, 240, 155]       # BraTS 표준
+  normalize: true
+  skull_strip: false                 # BraTS는 이미 skull-stripped
+
+# ──────────────────────────────────────────
+# BraTS pre-trained 추론 알고리즘
+# ──────────────────────────────────────────
+inference:
+  GLI:
+    algorithm: "BraTS23_1"   # André Ferreira, 1st place
+    backend: "docker"
+  MEN:
+    algorithm: "BraTS23_1"   # NVIDIA Auto3DSeg, 1st place
+    backend: "docker"
+  MET:
+    algorithm: "BraTS23_1"   # NVIDIA Auto3DSeg, 1st place
+    backend: "docker"
+
+  output_dir: "outputs/segmentation"
+  cuda_devices: "0"
+
+# ──────────────────────────────────────────
+# 특징 추출 (Segmentation → Feature Vector)
+# ──────────────────────────────────────────
+features:
+  # 각 타입 모델의 출력에서 추출할 특징
+  GLI_labels: {0: "BG", 1: "NCR", 2: "ED", 3: "ET"}
+  MEN_labels: {0: "BG", 1: "ET", 2: "NE-T", 3: "SNFH"}
+  MET_labels: {0: "BG", 1: "NETC", 2: "SNFH", 3: "ET"}
+
+  extract:
+    - voxel_count_per_class     # 클래스별 복셀 수
+    - volume_ratio              # 클래스 비율
+    - enhancing_ratio           # ET 비율 (GLI/MEN/MET 공통)
+    - edema_ratio               # 부종 비율
+    - lesion_count              # 병변 개수 (MET 특징)
+
+  output_dir: "outputs/features"
+
+# ──────────────────────────────────────────
+# Meta-Classifier 설정
+# ──────────────────────────────────────────
+classifier:
+  type: "random_forest"        # 1단계: RF (빠름)
+  # type: "mlp"               # 2단계: MLP
+  # type: "xgboost"           # 대안
+
+  random_forest:
+    n_estimators: 200
+    max_depth: 10
+    class_weight: "balanced"
+
+  mlp:
+    hidden_layers: [128, 64, 32]
+    dropout: 0.3
+    epochs: 100
+    lr: 0.001
+
+  train_split: 0.7
+  val_split: 0.15
+  test_split: 0.15
+
+  model_save_path: "models/weights/meta_classifier.pkl"
+  output_dir: "outputs/predictions"
+
+# ──────────────────────────────────────────
+# 로깅
+# ──────────────────────────────────────────
+logging:
+  level: "INFO"
+  file: "outputs/run.log"
